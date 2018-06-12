@@ -1,0 +1,5 @@
+{
+    "numberOfLevels": 20,
+    "capacityOfElevator": 4,
+    "delayBetweenLevelsInSeconds": 1
+}
