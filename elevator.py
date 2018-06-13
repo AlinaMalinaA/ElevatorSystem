@@ -17,29 +17,12 @@ class Elevator(object):
         # closing the doors ONLY AFTER waiting for 1 sec
         time.sleep(self.delay)
 
-    # устанавливаем этаж-цель
-    # если актуальный этаж не является этажом-целью,
-    # то закрыть двери и поехать
-    def move(self, target_level):
-        self.target = target_level
-        if self.level != self.target:
-            self.close_doors()
-            self.isMoving = True
-            print("Мы сейчас на {} этаже ".format(self.level))
-        while self.isMoving:
-            if self.level < target_level:
-                time.sleep(self.delay)
-                self.level += 1
-            elif self.level == target_level:
-                self.isMoving = False
-                print("Приехали!")
-                self.open_doors()
-            else:
-                time.sleep(self.delay)
-                self.level -= 1
-            print("Мы сейчас на {} этаже ".format(self.level))
+    def move(self, iterator):
+        time.sleep(self.delay)
+        self.level += iterator
 
-    # команда для прерывания, если пришел вызов с какого-нибудь этажа в процессе движения
-    # пока не используется
     def stop(self):
         self.isMoving = False
+
+    def go(self):
+        self.isMoving = True
