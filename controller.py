@@ -15,9 +15,9 @@ class Controller(object):
     # подменяет цель лифта на промежуточный этаж, с которого пришел вызов
     def stop_and_pick_up(self, target_level):
         print("Надо остановиться")
-        elevator.isMoving = False
-        temp = elevator.target
-        elevator.move(target_level)
+        self.elevator.isMoving = False
+        temp = self.elevator.target
+        self.elevator.move(target_level)
         self.add_to_queue(temp)
 
     # не забыть добавить проверку на повтор значений в очереди
@@ -67,8 +67,8 @@ class Controller(object):
             return self.elevator.level, self.elevator.target
 
     def load_people(self, number_of_new_people):
-        elevator.occupancy = elevator.occupancy + number_of_new_people
-        print("В кабине {} людей ".format(elevator.occupancy))
+        self.elevator.occupancy = self.elevator.occupancy + number_of_new_people
+        print("В кабине {} людей ".format(self.elevator.occupancy))
 
     def how_much_people_inside(self):
         return self.elevator.occupancy
