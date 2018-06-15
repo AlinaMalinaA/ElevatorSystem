@@ -2,6 +2,7 @@
 import controller
 import paramsLoader
 import os
+import math
 import threading
 
 
@@ -20,6 +21,13 @@ def is_int(k):
         return True
     except (TypeError, ValueError):
         return False
+
+
+def print_condition():
+    # os.system('clear')
+    print("Где лифт сейчас?", controller.where_are_we_now())
+    print("Сколько людей внутри?", controller.how_much_people_inside())
+    calculate_time_for_waiting()
 
 
 def loading_people():
@@ -42,9 +50,9 @@ def moving(target):
     # os.system('clear')
     print('Едем на {} этаж'.format(target))
     controller.prepare_elevator(target)
-    print("Время ожидания ", time_for_waiting())
+    calculate_time_for_waiting()
     controller.move(target)
-    loading_people()
+    # loading_people()
 
 
 def check_if_possible_to_pick_up(target_level):
@@ -60,7 +68,7 @@ def check_if_possible_to_pick_up(target_level):
     if target_level in range(a, b):
         print("Нам по пути")
         controller.stop_and_pick_up(target_level)
-        loading_people()
+        # loading_people()
     else:
         print("Нам не по пути, иди в очередь")
         controller.add_to_queue(target_level)
@@ -71,55 +79,70 @@ def check_if_possible_to_pick_up(target_level):
 # и проверить, можно ли подсадить вызвавшего пассажира
 # если свободен - сразу ехать на вызов
 def calling(target_level):
-    controller.prepare_elevator(target_level)
-    if controller.is_that_our_target(target_level):
-        check_if_possible_to_pick_up(target_level)
+    if is_level_okay(target_level):
+        controller.prepare_elevator(target_level)
+        if controller.is_that_our_target(target_level):
+            check_if_possible_to_pick_up(target_level)
+        else:
+            moving(target_level)
     else:
-        moving(target_level)
+        print("неверный этаж")
 
 
-def ask_for_level():
-    inputted_level = input("Введите этаж: ")
-    if is_int(inputted_level) and 0 < int(inputted_level) <= NUMBER_OF_LEVELS:
-        return int(inputted_level)
+def is_level_okay(level):
+    if is_int(level) and 0 < int(level) <= NUMBER_OF_LEVELS:
+        return True
     else:
-        print("Неверный номер этажа")
+        return False
 
 
-def received_call_from():
-    target_level = ask_for_level()
-    calling(target_level)
+request_queue = []
 
 
-def asked_to_move_to():
-    while controller.if_elevator_empty():
-        print("Лифт пустой, не может ехать")
-        loading_people()
-    target_level = ask_for_level()
-    moving(target_level)
-
-
-def waiting_for_input():
-    if len(controller.levels_queue) > 0:
-        calling(controller.get_max_level_from_queue())
+def command_distributor():
     while True:
-        call = input("Введите 'f' для вызова лифта, 't' для назначения или 'выход' для выхода : ")
-        if call == 'выход':
+        global request_queue
+        # спрашиваем команду
+        print_condition()
+
+        command = input("Введите 'f' для вызова лифта, 't' для назначения или 'выход' для выхода : ")
+
+        if command == 'выход':
             break
-        if call == 'f':
-            received_call_from()
-        elif call == 't':
-            asked_to_move_to()
+        if command == 'f':
+            inputed_level = input("Введите номер этажа, с которого пришел вызов ")
+            # проверка на повтор?
+            request_queue.append(inputed_level)
+            # проверка, если занят, то в очередь и не удалять элемент, пока не доедем до него
+            calling(inputed_level)
+            request_queue.remove(inputed_level)
+        elif command == 't':
+            while controller.if_elevator_empty():
+                print("Лифт пустой, не может ехать")
+                loading_people()
+                inputed_level = input("Введите номер этажа, на который надо ехать ")
+            # проверка на повтор?
+            request_queue.append(inputed_level)
+            moving(inputed_level)
+            request_queue.remove(inputed_level)
         else:
             print("Некорректный ввод команды")
 
 
-# поток ждет своего часа
-# t3 = threading.Thread(target=waiting_for_input)
+def calculate_time_for_waiting():
+    global request_queue
+    print("Длина очереди ", len(request_queue))
+    time_for_wait = 0
+    previous_target = controller.where_are_we_now()
+    for el in request_queue:
+        time_for_wait += math.fabs(previous_target - int(el)) * ELEVATOR_DELAY
 
-def time_for_waiting():
-    a, b = controller.give_the_range_of_levels_that_left()
-    return ELEVATOR_DELAY*(b-a)
+        previous_target = int(el)
+        print("Для {} этажа время ожидания составляет {} секунд".format(el, time_for_wait))
 
 
-waiting_for_input()
+main_thread_for_input = threading.Thread(target=command_distributor)
+
+
+main_thread_for_input.start()
+main_thread_for_input.join()
